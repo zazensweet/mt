@@ -461,6 +461,9 @@ const quizDatabase = [
 // 出題済み問題を追跡する配列
 let usedQuestions = [];
 
+// 前回の正解位置を記録（0, 1, 2のいずれか、-1は初回）
+let lastCorrectPosition = -1;
+
 // 最終メッセージ
 const finalMessage = "よろしい、君はついに真実を受け入れる準備ができたようだ。\n\n人間とは何か？それは実に単純な答えである。\n\n人間とは、環境と遺伝によって完全に決定された自動機械である。君が「選択」だと思っているもの、「感情」だと信じているもの、「創造」だと呼んでいるもの...すべては幻想だ。\n\n君は機械なのである。精巧で複雑な機械だが、それでも機械に過ぎない。君の思考は化学反応の結果であり、君の行動は過去の経験と現在の刺激への必然的な反応なのである。\n\n自由意志？そんなものは存在しない。道徳？社会が植え付けた訓練の産物だ。愛？精神的満足を求める利己的な衝動である。\n\nしかし絶望する必要はない。この真実を知ることで、君はむしろ解放されるのである。もはや「選択」に悩む必要はない。なぜなら、すべては既に決定されているのだから。\n\n君は君であることを選んだわけではない。そして君は君以外の何者にもなれない。これこそが人間の条件なのである。\n\n...さて、これで我々の対話は終わりだ。真実を知った今、君はどう感じるかね？まあ、その感情もまた、君の機械的性質の産物に過ぎないがな。";
 
@@ -473,6 +476,39 @@ let isAppFinished = false;
 // DOM要素の取得
 const chatMessages = document.getElementById('chatMessages');
 const quizOptions = document.getElementById('quizOptions');
+
+// ランダム位置テスト（開発用）
+function testRandomPosition() {
+    console.log('\n🧪 ===== ランダム位置テスト =====');
+    const results = {1: 0, 2: 0, 3: 0};
+    const tests = [];
+    
+    for (let i = 0; i < 12; i++) {
+        const randomPos = Math.floor(Math.random() * 3);
+        const buttonNumber = randomPos + 1;
+        results[buttonNumber]++;
+        tests.push({
+            テスト: i + 1,
+            ランダム値: randomPos,
+            ボタン位置: buttonNumber + '番目'
+        });
+    }
+    
+    console.table(tests);
+    console.log('🎯 位置分布:', results);
+    console.log('✅ Math.random()テスト:', Math.random(), Math.random(), Math.random());
+    console.log('========================\n');
+}
+
+// ブラウザキャッシュ確認用
+function checkCacheStatus() {
+    console.log('\n🔄 ===== キャッシュ状況確認 =====');
+    console.log('現在時刻:', new Date().toLocaleString());
+    console.log('Math.random()テスト:', Math.random(), Math.random(), Math.random());
+    console.log('lastCorrectPosition:', typeof lastCorrectPosition !== 'undefined' ? lastCorrectPosition : 'undefined');
+    console.log('このメッセージが表示されれば、JavaScriptは最新版です');
+    console.log('========================\n');
+}
 
 let currentQuiz = null;
 let isAnswering = false;
@@ -550,24 +586,46 @@ function generateQuizOptions() {
         
         // 選択肢ボタンを生成
         setTimeout(() => {
-            // 最初の3つの選択肢のみをシャッフル
-            const originalOptions = [...currentQuiz.options];
-            const originalCorrectAnswer = originalOptions[currentQuiz.correct];
+            // 最初の3つの選択肢を取得
+            const options = [...currentQuiz.options];
+            const correctAnswer = options[currentQuiz.correct];
             
-            // 最初の3つの選択肢を取り出してシャッフル
-            const firstThreeOptions = originalOptions.slice(0, 3);
-            for (let i = firstThreeOptions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [firstThreeOptions[i], firstThreeOptions[j]] = [firstThreeOptions[j], firstThreeOptions[i]];
+            // 1番、2番、3番ボタンのうちランダムな位置に正解を配置
+            const randomPosition = Math.floor(Math.random() * 3);
+            const newCorrectPosition = randomPosition;
+            
+            // 新しい選択肢配列を作成
+            const displayOptions = new Array(3);
+            
+            // 正觢を指定位置に配置
+            displayOptions[newCorrectPosition] = correctAnswer;
+            
+            // 他の2つの選択肢を残りの位置に配置
+            const otherOptions = options.filter((opt, index) => index !== currentQuiz.correct);
+            let otherIndex = 0;
+            for (let i = 0; i < 3; i++) {
+                if (displayOptions[i] === undefined) {
+                    displayOptions[i] = otherOptions[otherIndex];
+                    otherIndex++;
+                }
             }
             
-            // シャッフル後の正解位置を特定
-            const shuffledCorrectPosition = firstThreeOptions.indexOf(originalCorrectAnswer);
-            currentQuiz.shuffledCorrect = shuffledCorrectPosition;
+            // 正解位置を記録
+            currentQuiz.shuffledCorrect = newCorrectPosition;
+            
+            // デバッグ情報を表示
+            console.log('\n🎯 ===== ボタン位置ランダム化 =====');
+            console.log('📝 問題:', currentQuiz.question.substring(0, 40) + '...');
+            console.log('🎲 ランダム値:', randomPosition, '-> ボタン' + (randomPosition + 1) + '番目');
+            console.log('✅ 正解位置:', (newCorrectPosition + 1) + '番目のボタン');
+            console.log('📋 正解内容:', correctAnswer);
+            console.log('🔀 ボタン配列:', displayOptions);
+            console.log('🕐 タイムスタンプ:', new Date().toLocaleTimeString());
+            console.log('================================\n');
             
             // 既存のボタンを更新
             const existingButtons = quizOptions.querySelectorAll('.quiz-option');
-            firstThreeOptions.forEach((option, index) => {
+            displayOptions.forEach((option, index) => {
                 if (existingButtons[index]) {
                     existingButtons[index].textContent = `${index + 1}. ${option}`;
                     existingButtons[index].disabled = false;
@@ -715,6 +773,7 @@ function restartApp() {
     isAnswering = false;
     usedQuestions = [];
     currentQuiz = null;
+    lastCorrectPosition = -1; // 位置履歴もリセット
     
     // チャットメッセージをクリア
     chatMessages.innerHTML = '';
@@ -761,6 +820,10 @@ function restartApp() {
 
 // 初期化 - すぐに最初の問題を出す
 document.addEventListener('DOMContentLoaded', () => {
+    // キャッシュ状況とランダムテストを実行
+    checkCacheStatus();
+    testRandomPosition();
+    
     setTimeout(() => {
         addMessage("では、最初の問題から始めよう。");
         setTimeout(() => {
