@@ -550,23 +550,24 @@ function generateQuizOptions() {
         
         // 選択肢ボタンを生成
         setTimeout(() => {
-            // 選択肢をシャッフル
-            const shuffledOptions = [...currentQuiz.options];
-            const originalCorrectAnswer = shuffledOptions[currentQuiz.correct];
+            // 最初の3つの選択肢のみをシャッフル
+            const originalOptions = [...currentQuiz.options];
+            const originalCorrectAnswer = originalOptions[currentQuiz.correct];
             
-            // Fisher-Yates シャッフル
-            for (let i = shuffledOptions.length - 1; i > 0; i--) {
+            // 最初の3つの選択肢を取り出してシャッフル
+            const firstThreeOptions = originalOptions.slice(0, 3);
+            for (let i = firstThreeOptions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+                [firstThreeOptions[i], firstThreeOptions[j]] = [firstThreeOptions[j], firstThreeOptions[i]];
             }
             
             // シャッフル後の正解位置を特定
-            const shuffledCorrectPosition = shuffledOptions.indexOf(originalCorrectAnswer);
+            const shuffledCorrectPosition = firstThreeOptions.indexOf(originalCorrectAnswer);
             currentQuiz.shuffledCorrect = shuffledCorrectPosition;
             
             // 既存のボタンを更新
             const existingButtons = quizOptions.querySelectorAll('.quiz-option');
-            shuffledOptions.forEach((option, index) => {
+            firstThreeOptions.forEach((option, index) => {
                 if (existingButtons[index]) {
                     existingButtons[index].textContent = `${index + 1}. ${option}`;
                     existingButtons[index].disabled = false;
